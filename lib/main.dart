@@ -175,7 +175,7 @@ class _HomePageState extends State<HomePage> {
             title: map['title'] as String,
             amount: (map['amount'] as num).toDouble(),
             date: (map['date'] as String?) ?? _formatTransactionDate(timestamp),
-            icon: IconData(map['icon'] as int, fontFamily: 'MaterialIcons'),
+            icon: _iconFromCodePoint(map['icon'] as int),
             notes: (map['notes'] as String?) ?? "",
             timestamp: timestamp,
           ),
@@ -312,17 +312,21 @@ class _HomePageState extends State<HomePage> {
 
     for (var i = 0; i < sortedTxs.length; i++) {
       final t = sortedTxs[i];
-      if (currentMonth != t.timestamp.month || currentYear != t.timestamp.year) {
-        if (currentMonth != null) {
+      final transactionMonth = t.timestamp.month;
+      final transactionYear = t.timestamp.year;
+      if (currentMonth != transactionMonth || currentYear != transactionYear) {
+        if (currentMonth != null && currentYear != null) {
+          final previousMonth = currentMonth;
+          final previousYear = currentYear;
           buffer.writeln(
-            ">> Subtotal for ${monthNames[currentMonth]} $currentYear, ,${monthSubtotal.toStringAsFixed(2)}, [Monthly End]",
+            ">> Subtotal for ${monthNames[previousMonth]} $previousYear, ,${monthSubtotal.toStringAsFixed(2)}, [Monthly End]",
           );
           buffer.writeln();
         }
-        currentMonth = t.timestamp.month;
-        currentYear = t.timestamp.year;
+        currentMonth = transactionMonth;
+        currentYear = transactionYear;
         monthSubtotal = 0;
-        buffer.writeln("--- ${monthNames[currentMonth].toUpperCase()} $currentYear ---");
+        buffer.writeln("--- ${monthNames[transactionMonth].toUpperCase()} $transactionYear ---");
       }
 
       final dateStr =
@@ -334,11 +338,13 @@ class _HomePageState extends State<HomePage> {
       grandTotal += t.amount;
 
       if (i == sortedTxs.length - 1) {
-        final status = currentMonth == DateTime.now().month && currentYear == DateTime.now().year
+        final closingMonth = currentMonth!;
+        final closingYear = currentYear!;
+        final status = closingMonth == DateTime.now().month && closingYear == DateTime.now().year
             ? "Current Month To Date"
             : "Monthly Total";
         buffer.writeln(
-          ">> $status (${monthNames[currentMonth]} $currentYear), ,${monthSubtotal.toStringAsFixed(2)}, [Complete]",
+          ">> $status (${monthNames[closingMonth]} $closingYear), ,${monthSubtotal.toStringAsFixed(2)}, [Complete]",
         );
       }
     }
@@ -2406,6 +2412,25 @@ class _HomePageState extends State<HomePage> {
         _amber,
       ),
     ];
+  }
+
+  IconData _iconFromCodePoint(int codePoint) {
+    final knownIcons = [
+      ..._categories.map((category) => category.icon),
+      Icons.fastfood,
+      Icons.shopping_cart,
+      Icons.directions_car,
+      Icons.school_rounded,
+      Icons.home_rounded,
+      Icons.medical_services,
+      Icons.shopping_bag_rounded,
+      Icons.shopping_bag_outlined,
+    ];
+
+    for (final icon in knownIcons) {
+      if (icon.codePoint == codePoint) return icon;
+    }
+    return Icons.shopping_bag_outlined;
   }
 
   String _monthDeltaText({bool short = false}) {
