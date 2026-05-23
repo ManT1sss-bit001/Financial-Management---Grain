@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Grain | Financial Intelligence</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&amp;family=Inter:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-highest": "#2d3449",
+                    "surface-bright": "#31394d",
+                    "surface-container-high": "#222a3d",
+                    "on-tertiary-fixed-variant": "#633f00",
+                    "on-primary-fixed": "#00201a",
+                    "primary-container": "#00f5d4",
+                    "surface-tint": "#00dfc1",
+                    "on-primary": "#00382f",
+                    "on-surface-variant": "#b9cac4",
+                    "secondary-container": "#1493ff",
+                    "error-container": "#93000a",
+                    "tertiary-fixed": "#ffddb4",
+                    "on-secondary-fixed": "#001c39",
+                    "on-tertiary-container": "#845500",
+                    "outline-variant": "#3a4a46",
+                    "secondary-fixed": "#d3e3ff",
+                    "on-secondary-container": "#002a51",
+                    "tertiary-container": "#ffd39b",
+                    "on-secondary": "#00315d",
+                    "on-primary-container": "#006c5c",
+                    "secondary-fixed-dim": "#a3c9ff",
+                    "surface-container-lowest": "#060e20",
+                    "secondary": "#a3c9ff",
+                    "inverse-primary": "#006b5b",
+                    "on-secondary-fixed-variant": "#004883",
+                    "surface-container": "#171f33",
+                    "surface-container-low": "#131b2e",
+                    "surface": "#0b1326",
+                    "primary": "#d7fff3",
+                    "on-tertiary": "#452b00",
+                    "outline": "#83948f",
+                    "inverse-surface": "#dae2fd",
+                    "tertiary": "#fff5ed",
+                    "on-surface": "#dae2fd",
+                    "primary-fixed": "#26fedc",
+                    "on-tertiary-fixed": "#291800",
+                    "inverse-on-surface": "#283044",
+                    "on-error-container": "#ffdad6",
+                    "error": "#ffb4ab",
+                    "tertiary-fixed-dim": "#ffb955",
+                    "background": "#0b1326",
+                    "surface-dim": "#0b1326",
+                    "on-background": "#dae2fd",
+                    "surface-variant": "#2d3449",
+                    "on-primary-fixed-variant": "#005144",
+                    "primary-fixed-dim": "#00dfc1",
+                    "on-error": "#690005"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base": "8px",
+                    "margin-desktop": "40px",
+                    "stack-md": "12px",
+                    "stack-sm": "4px",
+                    "gutter": "24px",
+                    "stack-lg": "32px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Sora"],
+                    "body-md": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-md": ["Sora"],
+                    "display-lg-mobile": ["Sora"],
+                    "numeral-xl": ["Sora"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "label-caps": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.1em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "display-lg-mobile": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "numeral-xl": ["40px", {"lineHeight": "1.0", "letterSpacing": "-0.04em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        }
+        .teal-gradient-bg {
+            background: radial-gradient(circle at 50% -10%, #004d40 0%, #060e20 80%);
+            background-attachment: fixed;
+        }
+        .glow-teal {
+            box-shadow: 0 0 20px rgba(0, 245, 212, 0.3);
+        }
+        .premium-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(24px);
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 245, 212, 0.05);
+        }
+        .premium-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 1px;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.05) 100%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            -webkit-mask-composite: destination-out;
+            pointer-events: none;
+        }
+        .ambient-light {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0, 245, 212, 0.1) 0%, transparent 70%);
+            z-index: -1;
+            filter: blur(40px);
+        }
+        @keyframes float-particle {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            20% { opacity: 0.3; }
+            50% { transform: translateY(-100px) translateX(20px); opacity: 0.5; }
+            80% { opacity: 0.3; }
+            100% { transform: translateY(-200px) translateX(-10px); opacity: 0; }
+        }
+        .particle {
+            position: fixed;
+            background: rgba(0, 245, 212, 0.2);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+            filter: blur(2px);
+        }
+        @media (prefers-reduced-motion: no-preference) {
+            .particle-1 { width: 4px; height: 4px; left: 10%; bottom: -20px; animation: float-particle 15s infinite linear; }
+            .particle-2 { width: 6px; height: 6px; left: 40%; bottom: -20px; animation: float-particle 18s infinite linear 2s; }
+            .particle-3 { width: 3px; height: 3px; left: 70%; bottom: -20px; animation: float-particle 12s infinite linear 5s; }
+            .particle-4 { width: 5px; height: 5px; left: 85%; bottom: -20px; animation: float-particle 20s infinite linear 1s; }
+            
+            .animate-float {
+                animation: subtle-float 6s ease-in-out infinite;
+            }
+            @keyframes subtle-float {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-10px); }
+            }
+            @keyframes sparkle-pulse {
+                0% { transform: scale(1) rotate(0deg); opacity: 1; }
+                50% { transform: scale(1.2) rotate(15deg); opacity: 0.8; }
+                100% { transform: scale(1) rotate(0deg); opacity: 1; }
+            }
+            .animate-sparkle {
+                animation: sparkle-pulse 3s ease-in-out infinite;
+            }
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-md teal-gradient-bg selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden">
+<!-- Subtle Background Particles -->
+<div class="particle particle-1"></div>
+<div class="particle particle-2"></div>
+<div class="particle particle-3"></div>
+<div class="particle particle-4"></div>
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full backdrop-blur-xl border-b border-white/5 flex justify-between items-center px-margin-mobile py-4 z-50">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-xl bg-primary-container flex items-center justify-center shadow-lg shadow-primary-container/20">
+<span class="material-symbols-outlined text-on-primary-container text-xl" style="font-variation-settings: 'FILL' 1;">grain</span>
+</div>
+<h1 class="font-display-lg-mobile text-2xl text-primary-fixed tracking-tight">Grain</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="relative p-2 text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-primary-container rounded-full border border-background"></span>
+</button>
+<div class="w-10 h-10 rounded-full ring-2 ring-white/10 overflow-hidden hover:ring-primary-container/50 transition-all cursor-pointer">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqv6GrzXtmTPOBxkIcPjdnkyAWXhAdEclnRC60nHcCtrI-3HmIxHX08Xj4HX86Dpdmx8uOUV73xcQS7b2alcXQ-8lmNS1yl_I8jS7kNJw7IHyrCwzIg6ldAU1KL333xHlpqFfTB1DsbnhDfwswYBMN3jmEz7y-w3ZZM_ZqTVdaUU8zIcJPMlvb1AYyH-ebuhZX_E9W3TnQpju6WTZ3xWWn88LVEILq97tYUh6kwQgWRdZaQQUO3oN1NhAJfYPyhyK59MSyNAn7clA"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-margin-mobile max-w-4xl mx-auto">
+<!-- Premium Spending Summary Card -->
+<div class="relative mb-stack-lg animate-float">
+<div class="ambient-light top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+<div class="premium-card rounded-[2.5rem] p-8 relative overflow-hidden">
+<div class="grid grid-cols-2 gap-8 mb-8">
+<div>
+<p class="font-label-caps text-[10px] text-on-surface-variant mb-2 tracking-widest uppercase">Monthly Total</p>
+<h2 class="font-display-lg text-4xl text-primary-fixed" id="total-amount">$0.00</h2>
+<div class="flex items-center gap-1.5 mt-2 text-primary-container">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+<span class="font-label-caps text-[10px]">12% VS LAST MONTH</span>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-caps text-[10px] text-on-surface-variant mb-2 tracking-widest uppercase">Today</p>
+<h2 class="font-display-lg text-2xl text-on-surface" id="today-amount">$0.00</h2>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-end">
+<p class="font-label-caps text-[10px] text-on-surface-variant uppercase">Budget Goal</p>
+<p class="font-body-md text-sm text-on-surface"><span class="text-primary-container font-bold">70%</span> <span class="text-on-surface-variant">of $650</span></p>
+</div>
+<!-- Progress Bar -->
+<div class="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+<div class="h-full bg-gradient-to-r from-primary-container to-surface-tint rounded-full w-0 glow-teal transition-all duration-[2000ms] ease-out" id="progress-bar"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Actions Horizontal Row -->
+<div class="flex gap-3 mb-stack-lg overflow-x-auto pb-2 no-scrollbar">
+<button class="flex-shrink-0 bg-primary-container text-on-primary-container rounded-2xl px-6 py-4 flex items-center gap-3 active:scale-95 hover:-translate-y-1 transition-all shadow-lg shadow-primary-container/20">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+<span class="font-label-caps text-[11px] font-bold whitespace-nowrap">ADD EXPENSE</span>
+</button>
+<button class="flex-shrink-0 glass-panel hover:bg-white/10 hover:-translate-y-1 rounded-2xl px-6 py-4 flex items-center gap-3 transition-all active:scale-95">
+<span class="material-symbols-outlined text-primary-container">calendar_month</span>
+<span class="font-label-caps text-[11px] whitespace-nowrap">CALENDAR</span>
+</button>
+<button class="flex-shrink-0 glass-panel hover:bg-white/10 hover:-translate-y-1 rounded-2xl px-6 py-4 flex items-center gap-3 transition-all active:scale-95">
+<span class="material-symbols-outlined text-primary-container">insights</span>
+<span class="font-label-caps text-[11px] whitespace-nowrap">INSIGHTS</span>
+</button>
+<button class="flex-shrink-0 glass-panel hover:bg-white/10 hover:-translate-y-1 rounded-2xl px-6 py-4 flex items-center gap-3 transition-all active:scale-95">
+<span class="material-symbols-outlined text-primary-container">ios_share</span>
+<span class="font-label-caps text-[11px] whitespace-nowrap">EXPORT</span>
+</button>
+</div>
+<!-- AI Insight Card -->
+<div class="bg-surface-container-high/50 backdrop-blur-md border border-white/5 rounded-2xl p-5 mb-stack-lg relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary-container"></div>
+<div class="flex items-start gap-4">
+<div class="p-2.5 bg-primary-container/10 rounded-xl border border-primary-container/20">
+<span class="material-symbols-outlined text-primary-container animate-sparkle" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-caps text-[10px] text-primary-container tracking-widest font-bold">AI INSIGHT</span>
+</div>
+<p class="font-body-md text-sm text-on-surface leading-relaxed">Dining out is your highest category this month. Switching to home-cooked meals could save you <span class="text-primary-container font-bold">$120</span> by month-end.</p>
+</div>
+</div>
+</div>
+<!-- Recent Activity -->
+<section>
+<div class="flex justify-between items-center mb-5">
+<h3 class="font-display-lg text-xl text-on-surface">Recent Activity</h3>
+<button class="text-primary-container font-label-caps text-[11px] font-bold tracking-wider hover:opacity-70 transition-opacity">VIEW ALL</button>
+</div>
+<div class="space-y-4">
+<!-- Transaction 1 -->
+<div class="glass-panel rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20 transition-all cursor-pointer group active:scale-[0.98]">
+<div class="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-primary-container group-hover:scale-110 transition-transform border border-white/5">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<div class="flex-1">
+<p class="font-headline-md text-base text-on-surface">Blue Bottle Coffee</p>
+<p class="font-label-caps text-[10px] text-on-surface-variant mt-0.5 uppercase tracking-wider">FOOD &amp; DRINK • 10:45 AM</p>
+</div>
+<p class="font-display-lg text-lg text-error">-$6.50</p>
+</div>
+<!-- Transaction 2 -->
+<div class="glass-panel rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20 transition-all cursor-pointer group active:scale-[0.98]">
+<div class="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-primary-container group-hover:scale-110 transition-transform border border-white/5">
+<span class="material-symbols-outlined">shopping_bag</span>
+</div>
+<div class="flex-1">
+<p class="font-headline-md text-base text-on-surface">Apple Store</p>
+<p class="font-label-caps text-[10px] text-on-surface-variant mt-0.5 uppercase tracking-wider">ELECTRONICS • YESTERDAY</p>
+</div>
+<p class="font-display-lg text-lg text-error">-$129.00</p>
+</div>
+<!-- Transaction 3 -->
+<div class="glass-panel rounded-2xl p-4 flex items-center gap-4 hover:bg-white/10 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/20 transition-all cursor-pointer group active:scale-[0.98]">
+<div class="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-primary-container group-hover:scale-110 transition-transform border border-white/5">
+<span class="material-symbols-outlined">commute</span>
+</div>
+<div class="flex-1">
+<p class="font-headline-md text-base text-on-surface">Uber Technologies</p>
+<p class="font-label-caps text-[10px] text-on-surface-variant mt-0.5 uppercase tracking-wider">TRANSPORT • OCT 22</p>
+</div>
+<p class="font-display-lg text-lg text-error">-$18.20</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-margin-mobile pb-10 pt-4 bg-surface-container-lowest/80 backdrop-blur-2xl border-t border-white/5">
+<a class="relative flex flex-col items-center gap-1 text-primary-container" href="#">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">home</span>
+<div class="absolute -bottom-1 w-1 h-1 bg-primary-container rounded-full"></div>
+</a>
+<a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary-container transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">calendar_month</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary-container transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">insert_chart</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary-container transition-colors" href="#">
+<span class="material-symbols-outlined text-2xl">settings</span>
+</a>
+</nav>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Respect reduced motion preference
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // Counter animation function
+        function animateCounter(id, target, duration) {
+            const element = document.getElementById(id);
+            if (!element) return;
+            
+            if (prefersReducedMotion) {
+                element.innerText = `$${target.toFixed(2)}`;
+                return;
+            }
+
+            let start = 0;
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Ease out expo for a premium feel
+                const easeOut = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+                const current = start + (target - start) * easeOut;
+                
+                element.innerText = `$${current.toFixed(2)}`;
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            requestAnimationFrame(update);
+        }
+
+        // Trigger animations
+        setTimeout(() => {
+            // Animate progress bar
+            const progressBar = document.getElementById('progress-bar');
+            if (progressBar) {
+                progressBar.style.width = '70%';
+            }
+
+            // Animate counters
+            animateCounter('total-amount', 450.00, 2000);
+            animateCounter('today-amount', 12.50, 1500);
+        }, 300);
+
+        // Interactive background parallax (subtle)
+        if (!prefersReducedMotion) {
+            window.addEventListener('mousemove', (e) => {
+                const x = (e.clientX / window.innerWidth) - 0.5;
+                const y = (e.clientY / window.innerHeight) - 0.5;
+                
+                const cards = document.querySelectorAll('.animate-float');
+                cards.forEach(card => {
+                    card.style.transform = `translate(${x * 10}px, ${y * 10}px)`;
+                });
+            });
+        }
+    });
+</script>
+</body></html>
