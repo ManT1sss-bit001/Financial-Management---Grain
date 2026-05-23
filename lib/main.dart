@@ -168,13 +168,13 @@ class _HomePageState extends State<HomePage> {
       final list = jsonDecode(savedData) as List<dynamic>;
       for (final item in list) {
         final map = item as Map<String, dynamic>;
-        final timestamp = DateTime.parse(map['timestamp'] as String);
+        final timestamp = _loadTransactionTimestamp(map);
         loadedTransactions.add(
           Transaction(
             id: map['id'] as String,
             title: map['title'] as String,
             amount: (map['amount'] as num).toDouble(),
-            date: (map['date'] as String?) ?? _formatTransactionDate(timestamp),
+            date: _formatStoredTransactionDate(timestamp),
             icon: _iconFromCodePoint(map['icon'] as int),
             notes: (map['notes'] as String?) ?? "",
             timestamp: timestamp,
@@ -257,7 +257,7 @@ class _HomePageState extends State<HomePage> {
           id: DateTime.now().microsecondsSinceEpoch.toString(),
           title: title.isEmpty ? "Unlabeled" : title,
           amount: amount,
-          date: _formatTransactionDate(timestamp),
+          date: _formatStoredTransactionDate(timestamp),
           icon: icon,
           notes: note,
           timestamp: timestamp,
@@ -2318,7 +2318,7 @@ class _HomePageState extends State<HomePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(item.title, style: TextStyle(color: _textPrimary)),
         content: Text(
-          "Amount: ${_money(item.amount)}\nDate: ${_formatFullDate(item.timestamp)}\nNote: ${item.notes.isEmpty ? "No note" : item.notes}",
+          "Amount: ${_money(item.amount)}\nDate: ${_formatShortDate(item.timestamp)}\nNote: ${item.notes.isEmpty ? "No note" : item.notes}",
           style: TextStyle(color: _textMuted, height: 1.45),
         ),
         actions: [
@@ -2433,6 +2433,54 @@ class _HomePageState extends State<HomePage> {
     return Icons.shopping_bag_outlined;
   }
 
+  DateTime _loadTransactionTimestamp(Map<String, dynamic> map) {
+    final rawTimestamp = map['timestamp'];
+    if (rawTimestamp is String) {
+      final parsedTimestamp = DateTime.tryParse(rawTimestamp);
+      if (parsedTimestamp != null) return parsedTimestamp;
+    }
+
+    final recoveredDate = _tryParseAbsoluteSavedDate(map['date']);
+    if (recoveredDate != null) return recoveredDate;
+
+    return _unknownLegacyDate;
+  }
+
+  DateTime? _tryParseAbsoluteSavedDate(Object? rawDate) {
+    if (rawDate is! String) return null;
+    final value = rawDate.trim();
+    if (value.isEmpty) return null;
+
+    final lowerValue = value.toLowerCase();
+    if (lowerValue.startsWith("today") || lowerValue.startsWith("yesterday")) {
+      return null;
+    }
+
+    final directDate = DateTime.tryParse(value);
+    if (directDate != null && RegExp(r'\d{4}').hasMatch(value)) {
+      return directDate;
+    }
+
+    final pieces = value.replaceAll(',', ' ').split(RegExp(r'\s+')).where((piece) => piece.isNotEmpty).toList();
+    if (pieces.length < 3) return null;
+
+    final month = _monthIndexFromName(pieces[0]);
+    final day = int.tryParse(pieces[1]);
+    final year = int.tryParse(pieces[2]);
+    if (month == null || day == null || year == null) return null;
+
+    return DateTime(year, month, day);
+  }
+
+  int? _monthIndexFromName(String value) {
+    final normalized = value.toLowerCase();
+    for (var i = 1; i < _monthNames.length; i++) {
+      final month = _monthNames[i].toLowerCase();
+      if (month == normalized || month.substring(0, 3) == normalized) return i;
+    }
+    return null;
+  }
+
   String _monthDeltaText({bool short = false}) {
     final delta = monthlyTotal - previousMonthTotal;
     if (previousMonthTotal == 0) {
@@ -2451,24 +2499,33 @@ class _HomePageState extends State<HomePage> {
     return _money(value, decimals: 0);
   }
 
-  String _formatTransactionDate(DateTime date) {
-    final now = DateTime.now();
-    final time = "${date.hour}:${date.minute.toString().padLeft(2, '0')}";
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
-      return "Today, $time";
-    }
-    return "${_monthNames[date.month]} ${date.day}, $time";
+  String _formatStoredTransactionDate(DateTime date) {
+    if (_isUnknownLegacyDate(date)) return "unknown";
+    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
 
   String _formatShortDate(DateTime date) {
-    final now = DateTime.now();
-    if (date.year == now.year && date.month == now.month && date.day == now.day) return "Today";
-    return "${_monthNames[date.month].substring(0, 3)} ${date.day}";
+    if (_isUnknownLegacyDate(date)) return "Date unknown";
+
+    final today = _dateOnly(DateTime.now());
+    final transactionDate = _dateOnly(date);
+    if (transactionDate == today) return "Today";
+    if (transactionDate == today.subtract(const Duration(days: 1))) return "Yesterday";
+
+    final shortDate = "${_monthNames[date.month].substring(0, 3)} ${date.day}";
+    return date.year == today.year ? shortDate : "$shortDate, ${date.year}";
   }
 
-  String _formatFullDate(DateTime date) => "${_monthNames[date.month]} ${date.day}, ${date.year}";
+  String _formatFullDate(DateTime date) {
+    if (_isUnknownLegacyDate(date)) return "Date unknown";
+    return "${_monthNames[date.month]} ${date.day}, ${date.year}";
+  }
 
   String _formatMonthYear(DateTime date) => "${_monthNames[date.month]} ${date.year}";
+
+  DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+  bool _isUnknownLegacyDate(DateTime date) => _dateOnly(date) == _unknownLegacyDate;
 
   static const List<String> _monthNames = [
     "",
@@ -2487,6 +2544,8 @@ class _HomePageState extends State<HomePage> {
   ];
 
   static const List<String> _weekdays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+
+  static final DateTime _unknownLegacyDate = DateTime(1970, 1, 1);
 }
 
 class _QuickAction {
