@@ -34,7 +34,6 @@ This project follows an AI-assisted development workflow:
 ## Version History
 
 - `v0.1-prototype`: Initial AI-assisted Grain App prototype
-- 
 
 ## Technology
 
