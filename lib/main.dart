@@ -56,6 +56,17 @@ class _CategoryOption {
   const _CategoryOption(this.label, this.icon);
 }
 
+class _ExpenseAmountValidation {
+  final double? amount;
+  final String? error;
+
+  const _ExpenseAmountValidation.valid(this.amount) : error = null;
+
+  const _ExpenseAmountValidation.invalid(this.error) : amount = null;
+
+  bool get isValid => amount != null && error == null;
+}
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -1058,6 +1069,9 @@ class _HomePageState extends State<HomePage> {
             autofocus: false,
             textAlign: TextAlign.center,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) {
+              if (_formError != null) setState(() => _formError = null);
+            },
             style: TextStyle(
               color: _accentColor,
               fontSize: 58,
@@ -1212,14 +1226,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _saveExpenseFromForm() {
-    final rawAmount = _amountController.text.trim().replaceAll(',', '');
-    final amount = double.tryParse(rawAmount);
-
-    if (amount == null || amount <= 0) {
-      setState(() => _formError = "Enter an amount greater than zero.");
+    final amountValidation = _validateExpenseAmount(_amountController.text);
+    if (!amountValidation.isValid) {
+      setState(() => _formError = amountValidation.error);
       return;
     }
 
+    final amount = amountValidation.amount!;
     final now = DateTime.now();
     final timestamp = DateTime(
       _expenseDate.year,
@@ -1229,26 +1242,76 @@ class _HomePageState extends State<HomePage> {
       now.minute,
       now.second,
     );
+    final selectedCategory = _selectedCategoryOption();
 
     _addTransaction(
-      title: _selectedCategory,
+      title: selectedCategory.label,
       amount: amount,
-      icon: _selectedIcon,
+      icon: selectedCategory.icon,
       note: _noteController.text.trim(),
       timestamp: timestamp,
     );
 
+    final defaultCategory = _categories.first;
     setState(() {
       _amountController.clear();
       _noteController.clear();
       _formError = null;
       _expenseDate = DateTime.now();
+      _selectedCategory = defaultCategory.label;
+      _selectedIcon = defaultCategory.icon;
       _selectedYear = timestamp.year;
       _selectedMonth = timestamp.month;
       _selectedDay = timestamp.day;
       _currentIndex = 0;
     });
     _showSnack("Expense saved.");
+  }
+
+  _ExpenseAmountValidation _validateExpenseAmount(String input) {
+    final rawAmount = input.trim();
+    if (rawAmount.isEmpty) {
+      return const _ExpenseAmountValidation.invalid("Enter an amount to save this expense.");
+    }
+
+    if (rawAmount.contains(',') && !RegExp(r'^\d{1,3}(,\d{3})*(\.\d+)?$').hasMatch(rawAmount)) {
+      return const _ExpenseAmountValidation.invalid("Use valid number formatting, for example 12.50.");
+    }
+
+    final normalizedAmount = rawAmount.replaceAll(',', '');
+    final parsedAmount = double.tryParse(normalizedAmount);
+    if (parsedAmount != null && !parsedAmount.isFinite) {
+      return const _ExpenseAmountValidation.invalid("Enter a finite amount.");
+    }
+
+    if (!RegExp(r'^(?:\d+|\d*\.\d+)$').hasMatch(normalizedAmount)) {
+      return const _ExpenseAmountValidation.invalid("Enter a valid number amount.");
+    }
+
+    final decimalIndex = normalizedAmount.indexOf('.');
+    if (decimalIndex >= 0 && normalizedAmount.length - decimalIndex - 1 > 2) {
+      return const _ExpenseAmountValidation.invalid("Use no more than two decimal places.");
+    }
+
+    if (parsedAmount == null) {
+      return const _ExpenseAmountValidation.invalid("Enter a valid number amount.");
+    }
+
+    if (parsedAmount <= 0) {
+      return const _ExpenseAmountValidation.invalid("Amount must be greater than zero.");
+    }
+
+    return _ExpenseAmountValidation.valid(parsedAmount);
+  }
+
+  _CategoryOption _selectedCategoryOption() {
+    if (_selectedCategory.trim().isEmpty) return _categories.first;
+
+    for (final category in _categories) {
+      if (category.label == _selectedCategory) return category;
+    }
+
+    return _categories.first;
   }
 
   Widget _buildInsightsScreen() {
