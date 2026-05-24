@@ -85,6 +85,8 @@ class _HomePageState extends State<HomePage> {
   static const Color _blue = Color(0xFF1493FF);
   static const Color _amber = Color(0xFFFFB955);
   static const Color _pink = Color(0xFFFF8B98);
+  static const Color _refinedGreen = Color(0xFF5FD6B8);
+  static const Color _refinedRed = Color(0xFFE56B73);
 
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
@@ -243,11 +245,6 @@ class _HomePageState extends State<HomePage> {
         .where((t) => t.timestamp.year == now.year && t.timestamp.month == now.month)
         .toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-  }
-
-  Transaction? get _largestTransaction {
-    if (transactions.isEmpty) return null;
-    return transactions.reduce((a, b) => a.amount >= b.amount ? a : b);
   }
 
   double _sumTransactions(Iterable<Transaction> items) {
@@ -558,27 +555,14 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         _iconButton(Icons.notifications_none_rounded, () => _showSnack("No new notifications.")),
-        const SizedBox(width: 10),
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: _accentColor.withOpacity(0.35), width: 1.4),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [_navySoft, _isDarkMode ? Colors.black : Colors.white],
-            ),
-          ),
-          child: Icon(Icons.person_rounded, color: _textMuted),
-        ),
       ],
     );
   }
 
   Widget _buildSummaryCard() {
     final progress = _budgetProgress;
+    final budgetColor = _budgetStatusColor();
+    final monthDeltaColor = _monthDeltaStatusColor();
     return _glassCard(
       radius: 36,
       padding: const EdgeInsets.all(26),
@@ -595,7 +579,8 @@ class _HomePageState extends State<HomePage> {
                   monthlyTotal,
                   amountSize: 42,
                   subtext: _monthDeltaText(),
-                  icon: Icons.trending_up_rounded,
+                  icon: _monthDeltaTrendIcon(),
+                  subtextColor: monthDeltaColor,
                 ),
               ),
               const SizedBox(width: 18),
@@ -624,7 +609,7 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     TextSpan(
                       text: "${(progress * 100).clamp(0, 999).toStringAsFixed(0)}%",
-                      style: TextStyle(color: _accentColor, fontWeight: FontWeight.w900),
+                      style: TextStyle(color: budgetColor, fontWeight: FontWeight.w900),
                     ),
                     TextSpan(
                       text: " of ${_money(_monthlyBudget, decimals: 0)}",
@@ -636,7 +621,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           const SizedBox(height: 12),
-          _animatedProgress(progress),
+          _animatedProgress(progress, color: budgetColor),
         ],
       ),
     );
@@ -648,8 +633,10 @@ class _HomePageState extends State<HomePage> {
     required double amountSize,
     String? subtext,
     IconData? icon,
+    Color? subtextColor,
     bool alignRight = false,
   }) {
+    final resolvedSubtextColor = subtextColor ?? _accentColor;
     return Column(
       crossAxisAlignment: alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
@@ -668,14 +655,14 @@ class _HomePageState extends State<HomePage> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (icon != null) Icon(icon, size: 14, color: _accentColor),
+              if (icon != null) Icon(icon, size: 14, color: resolvedSubtextColor),
               if (icon != null) const SizedBox(width: 5),
               Flexible(
                 child: Text(
                   subtext,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: _accentColor, fontSize: 11, fontWeight: FontWeight.w800),
+                  style: TextStyle(color: resolvedSubtextColor, fontSize: 11, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
@@ -733,7 +720,7 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _labelText("AI Insight", color: _accentColor),
+                _labelText("Smart Insight", color: _accentColor),
                 const SizedBox(height: 8),
                 Text(
                   _smartInsight(),
@@ -979,6 +966,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMonthlyLimitCard() {
+    final budgetColor = _budgetStatusColor();
     return _glassCard(
       radius: 22,
       padding: const EdgeInsets.all(20),
@@ -987,15 +975,15 @@ class _HomePageState extends State<HomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _labelText("Monthly Limit", color: _accentColor),
+              _labelText("Monthly Limit", color: budgetColor),
               Text(
                 "${(_budgetProgress * 100).clamp(0, 999).toStringAsFixed(0)}% Used",
-                style: TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w700),
+                style: TextStyle(color: budgetColor, fontSize: 12, fontWeight: FontWeight.w800),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          _animatedProgress(_budgetProgress),
+          _animatedProgress(_budgetProgress, color: budgetColor),
         ],
       ),
     );
@@ -1405,7 +1393,8 @@ class _HomePageState extends State<HomePage> {
             label: "Budget Health",
             title: budgetStatus,
             detail: "${(_budgetProgress * 100).clamp(0, 999).toStringAsFixed(0)}% of budget used",
-            color: _accentColor,
+            color: _budgetStatusColor(),
+            detailColor: _budgetStatusColor(),
           ),
         ];
 
@@ -1430,6 +1419,7 @@ class _HomePageState extends State<HomePage> {
     required String title,
     required String detail,
     required Color color,
+    Color? detailColor,
   }) {
     return _glassCard(
       radius: 20,
@@ -1452,7 +1442,7 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(color: _textPrimary, fontSize: 20, fontWeight: FontWeight.w900, height: 1.1),
           ),
           const SizedBox(height: 8),
-          Text(detail, style: TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(detail, style: TextStyle(color: detailColor ?? _textMuted, fontSize: 12, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -1546,7 +1536,7 @@ class _HomePageState extends State<HomePage> {
           Row(
             children: [
               Expanded(child: _labelText("Month-Over-Month")),
-              Text(_monthDeltaText(), style: TextStyle(color: _accentColor, fontSize: 12, fontWeight: FontWeight.w900)),
+              Text(_monthDeltaText(), style: TextStyle(color: _monthDeltaStatusColor(), fontSize: 12, fontWeight: FontWeight.w900)),
             ],
           ),
           const SizedBox(height: 22),
@@ -2204,7 +2194,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _animatedProgress(double progress) {
+  Widget _animatedProgress(double progress, {Color? color}) {
+    final progressColor = color ?? _accentColor;
     return ClipRRect(
       borderRadius: BorderRadius.circular(99),
       child: TweenAnimationBuilder<double>(
@@ -2215,7 +2206,7 @@ class _HomePageState extends State<HomePage> {
           value: value,
           minHeight: 9,
           backgroundColor: Colors.white.withOpacity(_isDarkMode ? 0.08 : 0.18),
-          valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+          valueColor: AlwaysStoppedAnimation<Color>(progressColor),
         ),
       ),
     );
@@ -2297,21 +2288,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _deltaPill() {
-    final delta = monthlyTotal - previousMonthTotal;
-    final positive = delta >= 0;
+    final percent = _monthOverMonthPercent();
+    final isIncrease = percent != null && percent > 0;
+    final statusColor = _monthDeltaStatusColor();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: (positive ? _accentColor : _pink).withOpacity(0.13),
+        color: statusColor.withOpacity(0.13),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: (positive ? _accentColor : _pink).withOpacity(0.2)),
+        border: Border.all(color: statusColor.withOpacity(0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(positive ? Icons.trending_up_rounded : Icons.trending_down_rounded, size: 14, color: positive ? _accentColor : _pink),
+          Icon(isIncrease ? Icons.trending_up_rounded : Icons.trending_down_rounded, size: 14, color: statusColor),
           const SizedBox(width: 4),
-          Text(_monthDeltaText(short: true), style: TextStyle(color: positive ? _accentColor : _pink, fontSize: 11, fontWeight: FontWeight.w900)),
+          Text(_monthDeltaText(short: true), style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w900)),
         ],
       ),
     );
@@ -2404,6 +2396,21 @@ class _HomePageState extends State<HomePage> {
 
   double get _budgetProgress => _monthlyBudget <= 0 ? 0 : monthlyTotal / _monthlyBudget;
 
+  Color _budgetStatusColor() {
+    return _budgetProgress > 1 ? _refinedRed : _refinedGreen;
+  }
+
+  Color _monthDeltaStatusColor() {
+    final percent = _monthOverMonthPercent();
+    if (percent != null && percent > 100) return _refinedRed;
+    return _refinedGreen;
+  }
+
+  IconData _monthDeltaTrendIcon() {
+    final percent = _monthOverMonthPercent();
+    return percent != null && percent < 0 ? Icons.trending_down_rounded : Icons.trending_up_rounded;
+  }
+
   double _dayTotal(int year, int month, int day) {
     return _sumTransactions(
       transactions.where((t) => t.timestamp.year == year && t.timestamp.month == month && t.timestamp.day == day),
@@ -2430,51 +2437,246 @@ class _HomePageState extends State<HomePage> {
     return totals.entries.reduce((a, b) => a.value >= b.value ? a : b);
   }
 
+  Transaction? _largestTransactionIn(List<Transaction> items) {
+    if (items.isEmpty) return null;
+    return items.reduce((a, b) => a.amount >= b.amount ? a : b);
+  }
+
+  _DailySpending? _highestSpendingDay(List<Transaction> items) {
+    if (items.isEmpty) return null;
+
+    final dailyTotals = <DateTime, double>{};
+    for (final item in items) {
+      final day = _dateOnly(item.timestamp);
+      dailyTotals[day] = (dailyTotals[day] ?? 0) + item.amount;
+    }
+
+    if (dailyTotals.isEmpty) return null;
+    final highestDay = dailyTotals.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    return _DailySpending(highestDay.key, highestDay.value);
+  }
+
+  _RepeatedPurchaseInsight? _repeatedSmallPurchases(List<Transaction> items) {
+    final grouped = <String, List<Transaction>>{};
+    for (final item in items) {
+      if (item.amount <= 0 || item.amount > 25) continue;
+      final label = item.title.trim().isEmpty ? "Unlabeled" : item.title.trim();
+      grouped.putIfAbsent(label, () => []).add(item);
+    }
+
+    _RepeatedPurchaseInsight? best;
+    for (final entry in grouped.entries) {
+      if (entry.value.length < 3) continue;
+      final total = _sumTransactions(entry.value);
+      final candidate = _RepeatedPurchaseInsight(
+        label: entry.key,
+        count: entry.value.length,
+        total: total,
+        average: total / entry.value.length,
+      );
+      if (best == null || candidate.total > best.total) best = candidate;
+    }
+
+    return best;
+  }
+
+  _BudgetProjection? _budgetProjectionForCurrentMonth() {
+    if (_monthlyBudget <= 0 || monthlyTotal <= 0) return null;
+
+    final now = DateTime.now();
+    final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
+    final elapsedDays = math.max(now.day, 1);
+    final dailyAverage = monthlyTotal / elapsedDays;
+    final projectedTotal = dailyAverage * daysInMonth;
+
+    return _BudgetProjection(
+      projectedTotal: projectedTotal,
+      dailyAverage: dailyAverage,
+      remainingDays: math.max(daysInMonth - now.day, 0).toInt(),
+    );
+  }
+
+  double? _monthOverMonthPercent() {
+    if (previousMonthTotal <= 0) return null;
+    return (monthlyTotal - previousMonthTotal) / previousMonthTotal * 100;
+  }
+
   String _smartInsight() {
+    final monthItems = _monthTransactions;
     if (transactions.isEmpty) {
       return "Start by adding a few expenses. Grain will surface local spending patterns once it has data.";
     }
-    final top = _topCategory(_categoryTotals(_monthTransactions));
+    if (monthItems.isEmpty) {
+      return "No spending recorded this month yet. Add an expense to activate monthly insights.";
+    }
+
+    final projection = _budgetProjectionForCurrentMonth();
+    if (_budgetProgress > 1) {
+      final overAmount = monthlyTotal - _monthlyBudget;
+      return "You are ${_money(overAmount)} over this month's budget. Pause flexible purchases first.";
+    }
+    if (projection != null && projection.projectedTotal > _monthlyBudget * 1.05) {
+      return "At this pace, you may finish near ${_money(projection.projectedTotal)} this month. That is above your ${_money(_monthlyBudget)} budget.";
+    }
+
+    final monthDelta = _monthOverMonthPercent();
+    if (monthDelta != null && monthDelta <= -5) {
+      return "Nice work. Spending is down ${monthDelta.abs().toStringAsFixed(0)}% compared with last month.";
+    }
+
+    final repeated = _repeatedSmallPurchases(monthItems);
+    if (repeated != null) {
+      return "${repeated.label} has ${repeated.count} small purchases this month, totaling ${_money(repeated.total)} at ${_money(repeated.average)} on average.";
+    }
+
+    final highestDay = _highestSpendingDay(monthItems);
+    if (highestDay != null && monthItems.length > 1) {
+      return "Your highest spending day this month was ${_formatShortDate(highestDay.date)} at ${_money(highestDay.total)}.";
+    }
+
+    final top = _topCategory(_categoryTotals(monthItems));
     if (top == null) {
       return "No spending recorded this month yet. Add an expense to activate monthly insights.";
     }
     final remaining = (_monthlyBudget - monthlyTotal).clamp(0, double.infinity).toDouble();
-    if (_budgetProgress > 1) {
-      return "${top.key} is your highest category this month. You are over budget, so pause flexible purchases first.";
-    }
     return "${top.key} is your highest category this month. You still have ${_money(remaining)} before reaching your monthly budget.";
   }
 
   List<_SmartInsight> _insightCards() {
-    final top = _topCategory(_categoryTotals(_monthTransactions));
-    final largest = _largestTransaction;
+    final monthItems = _monthTransactions;
+    final top = _topCategory(_categoryTotals(monthItems));
+    final largest = _largestTransactionIn(monthItems);
+    final highestDay = _highestSpendingDay(monthItems);
+    final repeated = _repeatedSmallPurchases(monthItems);
+    final projection = _budgetProjectionForCurrentMonth();
+    final monthDelta = _monthOverMonthPercent();
     final remaining = _monthlyBudget - monthlyTotal;
-    return [
+
+    if (transactions.isEmpty) {
+      return [
+        _SmartInsight(
+          Icons.lightbulb_outline_rounded,
+          "Add a few expenses and Grain will build local spending signals for you.",
+          "Start tracking",
+          _accentColor,
+        ),
+        _SmartInsight(
+          Icons.lock_outline_rounded,
+          "Insights run on this device using your saved transactions only.",
+          "Local only",
+          _blue,
+        ),
+        _SmartInsight(
+          Icons.savings_outlined,
+          "Set a monthly budget to unlock budget health and projection insights.",
+          "Budget setup",
+          _amber,
+        ),
+      ];
+    }
+
+    if (monthItems.isEmpty) {
+      return [
+        _SmartInsight(
+          Icons.calendar_month_rounded,
+          "No spending has been recorded for this month yet.",
+          "New month",
+          _accentColor,
+        ),
+        _SmartInsight(
+          Icons.trending_down_rounded,
+          previousMonthTotal > 0
+              ? "Last month ended at ${_money(previousMonthTotal)}. This month is still clean."
+              : "Add this month's first expense to compare trends.",
+          "Monthly reset",
+          _blue,
+        ),
+        _SmartInsight(
+          Icons.add_circle_outline_rounded,
+          "Your next saved expense will update Home, Calendar, and Insights instantly.",
+          "Ready",
+          _amber,
+        ),
+      ];
+    }
+
+    final cards = <_SmartInsight>[
       _SmartInsight(
         Icons.lightbulb_outline_rounded,
         top == null
             ? "Add expenses for a clearer category forecast."
             : "${top.key} leads this month at ${_money(top.value)}.",
-        "View pattern",
+        "Top category",
         _accentColor,
       ),
       _SmartInsight(
         Icons.savings_outlined,
-        remaining >= 0
-            ? "You have ${_money(remaining)} left before your budget cap."
-            : "You are ${_money(remaining.abs())} over your monthly budget.",
-        "Budget check",
+        _budgetHealthInsight(remaining, projection),
+        "Budget health",
         remaining >= 0 ? _blue : _pink,
       ),
+    ];
+
+    if (monthDelta != null) {
+      cards.add(
+        _SmartInsight(
+          monthDelta <= 0 ? Icons.trending_down_rounded : Icons.trending_up_rounded,
+          monthDelta <= 0
+              ? "Spending is down ${monthDelta.abs().toStringAsFixed(0)}% from last month. Good control."
+              : "Spending is up ${monthDelta.toStringAsFixed(0)}% from last month. Watch flexible categories.",
+          "Month over month",
+          monthDelta <= 0 ? _accentColor : _amber,
+        ),
+      );
+    }
+
+    if (highestDay != null) {
+      cards.add(
+        _SmartInsight(
+          Icons.calendar_today_rounded,
+          "${_formatShortDate(highestDay.date)} is your highest spending day this month at ${_money(highestDay.total)}.",
+          "Peak day",
+          _blue,
+        ),
+      );
+    }
+
+    if (repeated != null) {
+      cards.add(
+        _SmartInsight(
+          Icons.repeat_rounded,
+          "${repeated.count} small ${repeated.label} purchases total ${_money(repeated.total)} this month, averaging ${_money(repeated.average)}.",
+          "Small spends",
+          _amber,
+        ),
+      );
+    }
+
+    cards.add(
       _SmartInsight(
         Icons.receipt_long_outlined,
         largest == null
-            ? "Large transactions will be flagged after you add expenses."
-            : "Largest recorded expense: ${largest.title} at ${_money(largest.amount)}.",
-        "Audit spend",
-        _amber,
+            ? "Largest single expense will appear after this month has spending."
+            : "Largest single expense this month: ${largest.title} at ${_money(largest.amount)}.",
+        "Largest expense",
+        _pink,
       ),
-    ];
+    );
+
+    return cards;
+  }
+
+  String _budgetHealthInsight(double remaining, _BudgetProjection? projection) {
+    if (remaining < 0) {
+      return "You are ${_money(remaining.abs())} over your monthly budget.";
+    }
+    if (projection != null && projection.projectedTotal > _monthlyBudget * 1.05) {
+      return "At ${_money(projection.dailyAverage)}/day, projected spend is ${_money(projection.projectedTotal)} with ${projection.remainingDays} days left.";
+    }
+    if (projection != null && projection.projectedTotal < _monthlyBudget * 0.85) {
+      return "Current pace projects ${_money(projection.projectedTotal)}, comfortably under budget.";
+    }
+    return "You have ${_money(remaining)} left before your budget cap.";
   }
 
   IconData _iconFromCodePoint(int codePoint) {
@@ -2634,6 +2836,39 @@ class _SmartInsight {
   final Color color;
 
   const _SmartInsight(this.icon, this.text, this.action, this.color);
+}
+
+class _DailySpending {
+  final DateTime date;
+  final double total;
+
+  const _DailySpending(this.date, this.total);
+}
+
+class _RepeatedPurchaseInsight {
+  final String label;
+  final int count;
+  final double total;
+  final double average;
+
+  const _RepeatedPurchaseInsight({
+    required this.label,
+    required this.count,
+    required this.total,
+    required this.average,
+  });
+}
+
+class _BudgetProjection {
+  final double projectedTotal;
+  final double dailyAverage;
+  final int remainingDays;
+
+  const _BudgetProjection({
+    required this.projectedTotal,
+    required this.dailyAverage,
+    required this.remainingDays,
+  });
 }
 
 class _DonutPainter extends CustomPainter {
