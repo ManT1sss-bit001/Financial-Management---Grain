@@ -87,6 +87,7 @@ class _HomePageState extends State<HomePage> {
   static const Color _pink = Color(0xFFFF8B98);
   static const Color _refinedGreen = Color(0xFF5FD6B8);
   static const Color _refinedRed = Color(0xFFE56B73);
+  static const String _fullLogoAsset = "assets/03_grain_full_logo_primary_37D1B8_transparent.png";
 
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
@@ -516,41 +517,38 @@ class _HomePageState extends State<HomePage> {
   Widget _buildTopBar({String? eyebrow, bool compact = false}) {
     return Row(
       children: [
-        Container(
-          width: compact ? 36 : 46,
-          height: compact ? 36 : 46,
-          decoration: BoxDecoration(
-            gradient: _accentGradient,
-            borderRadius: BorderRadius.circular(compact ? 14 : 18),
-            boxShadow: [
-              BoxShadow(color: _accentColor.withOpacity(0.24), blurRadius: 18, offset: const Offset(0, 8)),
-            ],
-          ),
-          child: Icon(Icons.grain, color: const Color(0xFF00201A), size: compact ? 20 : 26),
-        ),
-        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               if (eyebrow != null)
-                Text(
-                  eyebrow.toUpperCase(),
-                  style: TextStyle(
-                    color: _textMuted,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0,
+                Padding(
+                  padding: const EdgeInsets.only(left: 2, bottom: 4),
+                  child: Text(
+                    eyebrow.toUpperCase(),
+                    style: TextStyle(
+                      color: _textMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0,
+                    ),
                   ),
                 ),
-              Text(
-                "Grain",
-                style: TextStyle(
-                  color: _accentColor,
-                  fontSize: compact ? 24 : 30,
-                  height: 1,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0,
+              Image.asset(
+                _fullLogoAsset,
+                height: compact ? 32 : 42,
+                fit: BoxFit.contain,
+                alignment: Alignment.centerLeft,
+                errorBuilder: (context, error, stackTrace) => Text(
+                  "Grain",
+                  style: TextStyle(
+                    color: _accentColor,
+                    fontSize: compact ? 24 : 30,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0,
+                  ),
                 ),
               ),
             ],
@@ -1722,15 +1720,26 @@ class _HomePageState extends State<HomePage> {
         Center(
           child: Column(
             children: [
+              Image.asset(
+                _fullLogoAsset,
+                height: 44,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => Text(
+                  "Grain",
+                  style: TextStyle(color: _accentColor, fontSize: 22, fontWeight: FontWeight.w900),
+                ),
+              ),
+              const SizedBox(height: 10),
               Text(
-                "Local-first personal finance tracker",
-                style: TextStyle(color: _textMuted.withOpacity(0.75), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0),
+                "Money is accumulated little by little, like grains.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _textMuted.withOpacity(0.72), fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0),
               ),
               const SizedBox(height: 6),
               Text(
-                "Your data stays on this device unless you export it.",
+                "Made by Jerry Chen",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: _textMuted.withOpacity(0.58), fontSize: 11, fontWeight: FontWeight.w600),
+                style: TextStyle(color: _textMuted.withOpacity(0.5), fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ],
           ),

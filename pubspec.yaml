@@ -59,6 +59,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  assets:
+    - assets/grain_app_icon.png
+    - assets/03_grain_full_logo_primary_37D1B8_transparent.png
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
