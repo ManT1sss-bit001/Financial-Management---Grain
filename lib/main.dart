@@ -114,6 +114,7 @@ class _HomePageState extends State<HomePage> {
   IconData _selectedIcon = Icons.shopping_bag_outlined;
   DateTime _expenseDate = DateTime.now();
   String? _formError;
+  Set<String> _seenReminderIds = {};
 
   List<Transaction> transactions = [];
 
@@ -203,6 +204,7 @@ class _HomePageState extends State<HomePage> {
       if (colorValue != null) _accentColor = Color(colorValue);
       _isDarkMode = prefs.getBool('grain_dark_mode_v2') ?? true;
       _monthlyBudget = prefs.getDouble('grain_monthly_budget_v2') ?? 650;
+      _seenReminderIds = (prefs.getStringList('grain_seen_reminders_v1') ?? const <String>[]).toSet();
     });
   }
 
@@ -554,7 +556,42 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
-        _iconButton(Icons.notifications_none_rounded, () => _showSnack("No new notifications.")),
+        _buildReminderBell(),
+      ],
+    );
+  }
+
+  Widget _buildReminderBell() {
+    final unreadCount = _unreadReminderCount();
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _iconButton(Icons.notifications_none_rounded, _showSmartReminderCenter),
+        if (unreadCount > 0)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                color: _refinedRed,
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(color: _pageBackgroundAlt, width: 1.4),
+              ),
+              child: Center(
+                child: Text(
+                  unreadCount > 9 ? "9+" : "$unreadCount",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -2383,11 +2420,172 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _showSmartReminderCenter() {
+    final reminders = _smartReminders();
+    _markRemindersSeen(reminders);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.78),
+            padding: const EdgeInsets.fromLTRB(22, 14, 22, 28),
+            decoration: BoxDecoration(
+              color: (_isDarkMode ? _navySoft : Colors.white).withOpacity(_isDarkMode ? 0.94 : 0.98),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+              border: Border.all(color: _glassStroke),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 18),
+                      decoration: BoxDecoration(
+                        color: _textMuted.withOpacity(0.35),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: _accentColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _accentColor.withOpacity(0.25)),
+                        ),
+                        child: Icon(Icons.notifications_active_outlined, color: _accentColor),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Smart Reminders",
+                              style: TextStyle(color: _textPrimary, fontSize: 22, fontWeight: FontWeight.w900),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Local signals from your spending data",
+                              style: TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  if (reminders.isEmpty)
+                    _buildEmptyReminderState()
+                  else
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: reminders.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) => _buildReminderTile(reminders[index]),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyReminderState() {
+    return _glassCard(
+      radius: 22,
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle_outline_rounded, color: _refinedGreen, size: 28),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "No new reminders",
+                  style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  "You are all caught up. Grain will surface budget and spending signals here when they matter.",
+                  style: TextStyle(color: _textMuted, fontSize: 13, height: 1.35, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReminderTile(_SmartReminder reminder) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(_isDarkMode ? 0.045 : 0.64),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _glassStroke),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: reminder.color.withOpacity(0.14),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(reminder.icon, color: reminder.color, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  reminder.title,
+                  style: TextStyle(color: _textPrimary, fontSize: 15, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  reminder.message,
+                  style: TextStyle(color: _textMuted, fontSize: 13, height: 1.35, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showSnack(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(message, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
         behavior: SnackBarBehavior.floating,
         backgroundColor: _navySoft,
       ),
@@ -2409,6 +2607,114 @@ class _HomePageState extends State<HomePage> {
   IconData _monthDeltaTrendIcon() {
     final percent = _monthOverMonthPercent();
     return percent != null && percent < 0 ? Icons.trending_down_rounded : Icons.trending_up_rounded;
+  }
+
+  int _unreadReminderCount() {
+    return _smartReminders().where((reminder) => !_seenReminderIds.contains(reminder.id)).length;
+  }
+
+  void _markRemindersSeen(List<_SmartReminder> reminders) {
+    if (reminders.isEmpty) return;
+    final nextSeenIds = {..._seenReminderIds, ...reminders.map((reminder) => reminder.id)};
+    setState(() => _seenReminderIds = nextSeenIds);
+    _saveSeenReminderIds();
+  }
+
+  Future<void> _saveSeenReminderIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('grain_seen_reminders_v1', _seenReminderIds.toList()..sort());
+  }
+
+  List<_SmartReminder> _smartReminders() {
+    final monthItems = _monthTransactions;
+    if (monthItems.isEmpty) return const [];
+
+    final now = DateTime.now();
+    final monthKey = "${now.year}-${now.month.toString().padLeft(2, '0')}";
+    final reminders = <_SmartReminder>[];
+    final projection = _budgetProjectionForCurrentMonth();
+    final monthDelta = _monthOverMonthPercent();
+    final topCategory = _topCategory(_categoryTotals(monthItems));
+    final highestDay = _highestSpendingDay(monthItems);
+
+    if (_budgetProgress > 1) {
+      reminders.add(
+        _SmartReminder(
+          id: "$monthKey-budget-over",
+          title: "Monthly budget exceeded",
+          message: "You are ${_money(monthlyTotal - _monthlyBudget)} over your ${_money(_monthlyBudget)} monthly budget.",
+          icon: Icons.warning_amber_rounded,
+          color: _refinedRed,
+          priority: 0,
+        ),
+      );
+    } else if (projection != null && projection.projectedTotal > _monthlyBudget * 1.05) {
+      reminders.add(
+        _SmartReminder(
+          id: "$monthKey-budget-projected",
+          title: "Budget risk building",
+          message: "At the current pace, projected spend is ${_money(projection.projectedTotal)} by month-end.",
+          icon: Icons.speed_rounded,
+          color: _amber,
+          priority: 1,
+        ),
+      );
+    }
+
+    if (monthDelta != null && monthDelta > 100) {
+      reminders.add(
+        _SmartReminder(
+          id: "$monthKey-month-spike",
+          title: "Spending increased sharply",
+          message: "This month is up ${monthDelta.toStringAsFixed(0)}% compared with last month.",
+          icon: Icons.trending_up_rounded,
+          color: _refinedRed,
+          priority: 1,
+        ),
+      );
+    } else if (monthDelta != null && monthDelta <= -5) {
+      reminders.add(
+        _SmartReminder(
+          id: "$monthKey-month-down",
+          title: "Spending is down",
+          message: "Nice control. You are spending ${monthDelta.abs().toStringAsFixed(0)}% less than last month.",
+          icon: Icons.trending_down_rounded,
+          color: _refinedGreen,
+          priority: 3,
+        ),
+      );
+    }
+
+    if (topCategory != null) {
+      reminders.add(
+        _SmartReminder(
+          id: "$monthKey-top-category-${topCategory.key}",
+          title: "Top category this month",
+          message: "${topCategory.key} leads your spending at ${_money(topCategory.value)}.",
+          icon: Icons.category_outlined,
+          color: _accentColor,
+          priority: 4,
+        ),
+      );
+    }
+
+    if (highestDay != null && monthItems.length > 1) {
+      final dayKey =
+          "${highestDay.date.year}-${highestDay.date.month.toString().padLeft(2, '0')}-${highestDay.date.day.toString().padLeft(2, '0')}";
+      reminders.add(
+        _SmartReminder(
+          id: "$monthKey-highest-day-$dayKey",
+          title: "Highest spending day",
+          message: "${_formatShortDate(highestDay.date)} reached ${_money(highestDay.total)} in total spending.",
+          icon: Icons.calendar_today_rounded,
+          color: _blue,
+          priority: 5,
+        ),
+      );
+    }
+
+    reminders.sort((a, b) => a.priority.compareTo(b.priority));
+    return reminders;
   }
 
   double _dayTotal(int year, int month, int day) {
@@ -2836,6 +3142,24 @@ class _SmartInsight {
   final Color color;
 
   const _SmartInsight(this.icon, this.text, this.action, this.color);
+}
+
+class _SmartReminder {
+  final String id;
+  final String title;
+  final String message;
+  final IconData icon;
+  final Color color;
+  final int priority;
+
+  const _SmartReminder({
+    required this.id,
+    required this.title,
+    required this.message,
+    required this.icon,
+    required this.color,
+    required this.priority,
+  });
 }
 
 class _DailySpending {
