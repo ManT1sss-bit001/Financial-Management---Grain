@@ -7,6 +7,11 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const String _grainFullLogoAsset = "assets/03_grain_full_logo_primary_37D1B8_transparent.png";
+const String _grainOnboardingSeenKey = "grain_has_seen_onboarding_v1";
+const Color _grainNavyDeep = Color(0xFF060E20);
+const Color _grainNavy = Color(0xFF0B1326);
+const Color _grainAccent = Color(0xFF37D1B8);
+const Color _grainCyan = Color(0xFF00F5D4);
 
 void main() => runApp(const GrainApp());
 
@@ -20,9 +25,9 @@ class GrainApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF060E20),
+        scaffoldBackgroundColor: _grainNavyDeep,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF00F5D4),
+          seedColor: _grainCyan,
           brightness: Brightness.dark,
         ),
       ),
@@ -43,7 +48,7 @@ class _GrainOpeningScreenState extends State<GrainOpeningScreen> with SingleTick
   late final Animation<double> _logoFade;
   late final Animation<double> _logoScale;
   late final Animation<double> _sloganFade;
-  bool _showHome = false;
+  Widget? _nextScreen;
 
   @override
   void initState() {
@@ -64,9 +69,18 @@ class _GrainOpeningScreenState extends State<GrainOpeningScreen> with SingleTick
       curve: const Interval(0.42, 1, curve: Curves.easeOut),
     );
 
-    Future<void>.delayed(const Duration(milliseconds: 1650), () {
-      if (!mounted) return;
-      setState(() => _showHome = true);
+    _completeOpening();
+  }
+
+  Future<void> _completeOpening() async {
+    final prefsFuture = SharedPreferences.getInstance();
+    await Future<void>.delayed(const Duration(milliseconds: 1650));
+    final prefs = await prefsFuture;
+    if (!mounted) return;
+
+    final hasSeenOnboarding = prefs.getBool(_grainOnboardingSeenKey) ?? false;
+    setState(() {
+      _nextScreen = hasSeenOnboarding ? const HomePage() : const GrainOnboardingScreen();
     });
   }
 
@@ -82,13 +96,13 @@ class _GrainOpeningScreenState extends State<GrainOpeningScreen> with SingleTick
       duration: const Duration(milliseconds: 360),
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeInCubic,
-      child: _showHome ? const HomePage() : _buildOpeningFrame(),
+      child: _nextScreen ?? _buildOpeningFrame(),
     );
   }
 
   Widget _buildOpeningFrame() {
     return Scaffold(
-      backgroundColor: const Color(0xFF060E20),
+      backgroundColor: _grainNavyDeep,
       body: Stack(
         children: [
           Positioned.fill(
@@ -116,7 +130,7 @@ class _GrainOpeningScreenState extends State<GrainOpeningScreen> with SingleTick
                         errorBuilder: (context, error, stackTrace) => const Text(
                           "Grain",
                           style: TextStyle(
-                            color: Color(0xFF37D1B8),
+                            color: _grainAccent,
                             fontSize: 38,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0,
@@ -147,6 +161,268 @@ class _GrainOpeningScreenState extends State<GrainOpeningScreen> with SingleTick
       ),
     );
   }
+}
+
+class GrainOnboardingScreen extends StatefulWidget {
+  const GrainOnboardingScreen({super.key});
+
+  @override
+  State<GrainOnboardingScreen> createState() => _GrainOnboardingScreenState();
+}
+
+class _GrainOnboardingScreenState extends State<GrainOnboardingScreen> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+
+  static const List<_OnboardingPageData> _pages = [
+    _OnboardingPageData(
+      icon: Icons.savings_outlined,
+      title: "Track small spending",
+      body:
+          "Money is accumulated little by little, like grains. Grain helps you record daily expenses before they become invisible.",
+    ),
+    _OnboardingPageData(
+      icon: Icons.insights_rounded,
+      title: "Understand your habits",
+      body: "Use the calendar, insights, and category summaries to see where your money goes.",
+    ),
+    _OnboardingPageData(
+      icon: Icons.notifications_active_outlined,
+      title: "Smart local reminders",
+      body: "Grain gives budget and spending reminders using local data, without cloud AI or system notifications.",
+    ),
+  ];
+
+  bool get _isLastPage => _currentPage == _pages.length - 1;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _finishOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_grainOnboardingSeenKey, true);
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder<void>(
+        pageBuilder: (context, animation, secondaryAnimation) => const HomePage(),
+        transitionDuration: const Duration(milliseconds: 360),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
+  void _handlePrimaryAction() {
+    if (_isLastPage) {
+      _finishOnboarding();
+      return;
+    }
+
+    _pageController.nextPage(
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _grainNavyDeep,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [_grainNavyDeep, _grainNavy, Color(0xFF071C24)],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 28),
+            child: Column(
+              children: [
+                Image.asset(
+                  _grainFullLogoAsset,
+                  height: 52,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Text(
+                    "Grain",
+                    style: TextStyle(color: _grainAccent, fontSize: 28, fontWeight: FontWeight.w900),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageController,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _pages.length,
+                    onPageChanged: (index) => setState(() => _currentPage = index),
+                    itemBuilder: (context, index) {
+                      return _buildOnboardingPage(_pages[index]);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _buildPageIndicators(),
+                const SizedBox(height: 22),
+                _buildPrimaryButton(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOnboardingPage(_OnboardingPageData page) {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(26),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.055),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.white.withOpacity(0.10)),
+            boxShadow: [
+              BoxShadow(
+                color: _grainCyan.withOpacity(0.08),
+                blurRadius: 34,
+                offset: const Offset(0, 18),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [_grainCyan, _grainAccent]),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _grainCyan.withOpacity(0.22),
+                      blurRadius: 24,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Icon(page.icon, color: const Color(0xFF00201A), size: 28),
+              ),
+              const SizedBox(height: 28),
+              Text(
+                page.title,
+                style: const TextStyle(
+                  color: Color(0xFFDAE2FD),
+                  fontSize: 28,
+                  height: 1.05,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                page.body,
+                style: const TextStyle(
+                  color: Color(0xFFB9CAC4),
+                  fontSize: 15,
+                  height: 1.48,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageIndicators() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(_pages.length, (index) {
+        final isActive = index == _currentPage;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          width: isActive ? 26 : 8,
+          height: 8,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: isActive ? _grainAccent : Colors.white.withOpacity(0.18),
+            borderRadius: BorderRadius.circular(99),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildPrimaryButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [_grainCyan, _grainAccent]),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: _grainCyan.withOpacity(0.20),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: _handlePrimaryAction,
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: Text(
+                  _isLastPage ? "Start using Grain" : "Next",
+                  key: ValueKey<bool>(_isLastPage),
+                  style: const TextStyle(
+                    color: Color(0xFF00201A),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OnboardingPageData {
+  final IconData icon;
+  final String title;
+  final String body;
+
+  const _OnboardingPageData({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
 }
 
 class Transaction {
