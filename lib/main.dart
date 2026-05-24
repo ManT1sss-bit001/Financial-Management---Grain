@@ -562,12 +562,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildReminderBell() {
-    final unreadCount = _unreadReminderCount();
+    final urgentCount = _activeUrgentReminderCount();
     return Stack(
       clipBehavior: Clip.none,
       children: [
         _iconButton(Icons.notifications_none_rounded, _showSmartReminderCenter),
-        if (unreadCount > 0)
+        if (urgentCount > 0)
           Positioned(
             right: -2,
             top: -2,
@@ -581,7 +581,7 @@ class _HomePageState extends State<HomePage> {
               ),
               child: Center(
                 child: Text(
-                  unreadCount > 9 ? "9+" : "$unreadCount",
+                  urgentCount > 9 ? "9+" : "$urgentCount",
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 9,
@@ -2511,6 +2511,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildEmptyReminderState() {
+    final title = transactions.isEmpty ? "No spending reminders yet" : "No new reminders";
+    final message = transactions.isEmpty
+        ? "Add your first expense to let Grain generate insights."
+        : "You are all caught up. Grain will surface budget and spending signals here when they matter.";
+
     return _glassCard(
       radius: 22,
       padding: const EdgeInsets.all(18),
@@ -2523,12 +2528,12 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "No new reminders",
+                  title,
                   style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  "You are all caught up. Grain will surface budget and spending signals here when they matter.",
+                  message,
                   style: TextStyle(color: _textMuted, fontSize: 13, height: 1.35, fontWeight: FontWeight.w600),
                 ),
               ],
@@ -2609,8 +2614,8 @@ class _HomePageState extends State<HomePage> {
     return percent != null && percent < 0 ? Icons.trending_down_rounded : Icons.trending_up_rounded;
   }
 
-  int _unreadReminderCount() {
-    return _smartReminders().where((reminder) => !_seenReminderIds.contains(reminder.id)).length;
+  int _activeUrgentReminderCount() {
+    return _smartReminders().where((reminder) => reminder.isUrgent).length;
   }
 
   void _markRemindersSeen(List<_SmartReminder> reminders) {
@@ -2627,60 +2632,40 @@ class _HomePageState extends State<HomePage> {
 
   List<_SmartReminder> _smartReminders() {
     final monthItems = _monthTransactions;
-    if (monthItems.isEmpty) return const [];
+    if (transactions.isEmpty) return const [];
 
     final now = DateTime.now();
     final monthKey = "${now.year}-${now.month.toString().padLeft(2, '0')}";
     final reminders = <_SmartReminder>[];
-    final projection = _budgetProjectionForCurrentMonth();
-    final monthDelta = _monthOverMonthPercent();
     final topCategory = _topCategory(_categoryTotals(monthItems));
     final highestDay = _highestSpendingDay(monthItems);
+    final monthDifference = monthlyTotal - previousMonthTotal;
+    final isOverBudget = _monthlyBudget > 0 && monthlyTotal > _monthlyBudget;
 
-    if (_budgetProgress > 1) {
+    if (isOverBudget) {
       reminders.add(
         _SmartReminder(
           id: "$monthKey-budget-over",
           title: "Monthly budget exceeded",
-          message: "You are ${_money(monthlyTotal - _monthlyBudget)} over your ${_money(_monthlyBudget)} monthly budget.",
+          message: "You are ${_money(monthlyTotal - _monthlyBudget)} over your monthly budget.",
           icon: Icons.warning_amber_rounded,
           color: _refinedRed,
           priority: 0,
-        ),
-      );
-    } else if (projection != null && projection.projectedTotal > _monthlyBudget * 1.05) {
-      reminders.add(
-        _SmartReminder(
-          id: "$monthKey-budget-projected",
-          title: "Budget risk building",
-          message: "At the current pace, projected spend is ${_money(projection.projectedTotal)} by month-end.",
-          icon: Icons.speed_rounded,
-          color: _amber,
-          priority: 1,
+          isUrgent: true,
         ),
       );
     }
 
-    if (monthDelta != null && monthDelta > 100) {
+    if (monthDifference > 0) {
       reminders.add(
         _SmartReminder(
-          id: "$monthKey-month-spike",
-          title: "Spending increased sharply",
-          message: "This month is up ${monthDelta.toStringAsFixed(0)}% compared with last month.",
+          id: "$monthKey-month-higher",
+          title: "Spending is higher than last month",
+          message: "Your spending this month is now higher than last month. You have spent ${_money(monthDifference)} more than last month.",
           icon: Icons.trending_up_rounded,
           color: _refinedRed,
           priority: 1,
-        ),
-      );
-    } else if (monthDelta != null && monthDelta <= -5) {
-      reminders.add(
-        _SmartReminder(
-          id: "$monthKey-month-down",
-          title: "Spending is down",
-          message: "Nice control. You are spending ${monthDelta.abs().toStringAsFixed(0)}% less than last month.",
-          icon: Icons.trending_down_rounded,
-          color: _refinedGreen,
-          priority: 3,
+          isUrgent: true,
         ),
       );
     }
@@ -2689,26 +2674,42 @@ class _HomePageState extends State<HomePage> {
       reminders.add(
         _SmartReminder(
           id: "$monthKey-top-category-${topCategory.key}",
-          title: "Top category this month",
-          message: "${topCategory.key} leads your spending at ${_money(topCategory.value)}.",
+          title: isOverBudget ? "Budget pressure source" : "Top category this month",
+          message: isOverBudget
+              ? "Your highest spending category this month is ${topCategory.key}, which may be the main reason for the budget pressure."
+              : "${topCategory.key} is currently your top spending category this month.",
           icon: Icons.category_outlined,
           color: _accentColor,
-          priority: 4,
+          priority: 2,
         ),
       );
     }
 
-    if (highestDay != null && monthItems.length > 1) {
+    if (highestDay != null) {
       final dayKey =
           "${highestDay.date.year}-${highestDay.date.month.toString().padLeft(2, '0')}-${highestDay.date.day.toString().padLeft(2, '0')}";
       reminders.add(
         _SmartReminder(
           id: "$monthKey-highest-day-$dayKey",
           title: "Highest spending day",
-          message: "${_formatShortDate(highestDay.date)} reached ${_money(highestDay.total)} in total spending.",
+          message:
+              "Your highest spending day this month was ${_formatShortDate(highestDay.date)}, with ${_money(highestDay.total, decimals: 0)} spent.",
           icon: Icons.calendar_today_rounded,
           color: _blue,
-          priority: 5,
+          priority: 3,
+        ),
+      );
+    }
+
+    if (monthDifference < 0) {
+      reminders.add(
+        _SmartReminder(
+          id: "$monthKey-month-lower",
+          title: "Spending is lower than last month",
+          message: "Good progress. You are currently spending ${_money(monthDifference.abs())} less than last month.",
+          icon: Icons.trending_down_rounded,
+          color: _refinedGreen,
+          priority: 4,
         ),
       );
     }
@@ -3151,6 +3152,7 @@ class _SmartReminder {
   final IconData icon;
   final Color color;
   final int priority;
+  final bool isUrgent;
 
   const _SmartReminder({
     required this.id,
@@ -3159,6 +3161,7 @@ class _SmartReminder {
     required this.icon,
     required this.color,
     required this.priority,
+    this.isUrgent = false,
   });
 }
 
