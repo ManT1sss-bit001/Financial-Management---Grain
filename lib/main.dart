@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+const String _grainFullLogoAsset = "assets/03_grain_full_logo_primary_37D1B8_transparent.png";
+
 void main() => runApp(const GrainApp());
 
 class GrainApp extends StatelessWidget {
@@ -24,7 +26,125 @@ class GrainApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
-      home: const HomePage(),
+      home: const GrainOpeningScreen(),
+    );
+  }
+}
+
+class GrainOpeningScreen extends StatefulWidget {
+  const GrainOpeningScreen({super.key});
+
+  @override
+  State<GrainOpeningScreen> createState() => _GrainOpeningScreenState();
+}
+
+class _GrainOpeningScreenState extends State<GrainOpeningScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _logoFade;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _sloganFade;
+  bool _showHome = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..forward();
+    _logoFade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0, 0.7, curve: Curves.easeOutCubic),
+    );
+    _logoScale = Tween<double>(begin: 0.92, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: const Interval(0.05, 0.75, curve: Curves.easeOutCubic)),
+    );
+    _sloganFade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.42, 1, curve: Curves.easeOut),
+    );
+
+    Future<void>.delayed(const Duration(milliseconds: 1650), () {
+      if (!mounted) return;
+      setState(() => _showHome = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 360),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      child: _showHome ? const HomePage() : _buildOpeningFrame(),
+    );
+  }
+
+  Widget _buildOpeningFrame() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF060E20),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) => CustomPaint(
+                painter: _GrainOpeningParticlePainter(progress: _controller.value),
+              ),
+            ),
+          ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 42),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FadeTransition(
+                    opacity: _logoFade,
+                    child: ScaleTransition(
+                      scale: _logoScale,
+                      child: Image.asset(
+                        _grainFullLogoAsset,
+                        height: 76,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const Text(
+                          "Grain",
+                          style: TextStyle(
+                            color: Color(0xFF37D1B8),
+                            fontSize: 38,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  FadeTransition(
+                    opacity: _sloganFade,
+                    child: const Text(
+                      "Small spending. Clear habits.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFB9CAC4),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -67,6 +187,62 @@ class _ExpenseAmountValidation {
   bool get isValid => amount != null && error == null;
 }
 
+class _GrainOpeningParticlePainter extends CustomPainter {
+  final double progress;
+
+  const _GrainOpeningParticlePainter({required this.progress});
+
+  static const List<_OpeningParticle> _particles = [
+    _OpeningParticle(0.18, 0.68, 2.8, 0.00, 0.95),
+    _OpeningParticle(0.30, 0.58, 4.2, 0.12, 0.82),
+    _OpeningParticle(0.42, 0.70, 2.4, 0.04, 0.88),
+    _OpeningParticle(0.57, 0.62, 3.5, 0.10, 0.92),
+    _OpeningParticle(0.70, 0.55, 2.6, 0.18, 0.78),
+    _OpeningParticle(0.82, 0.66, 4.0, 0.08, 0.86),
+    _OpeningParticle(0.36, 0.43, 2.2, 0.22, 0.74),
+    _OpeningParticle(0.66, 0.40, 2.8, 0.16, 0.80),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final glowPaint = Paint()
+      ..shader = const RadialGradient(
+        colors: [Color(0x3320E6CB), Color(0x00060E20)],
+      ).createShader(Rect.fromCircle(center: size.center(Offset.zero), radius: size.shortestSide * 0.58));
+    canvas.drawRect(Offset.zero & size, glowPaint);
+
+    for (final particle in _particles) {
+      final localProgress = ((progress - particle.delay) / (1 - particle.delay)).clamp(0.0, 1.0).toDouble();
+      final eased = Curves.easeOutCubic.transform(localProgress);
+      final opacity = math.sin(localProgress * math.pi).clamp(0.0, 1.0).toDouble() * particle.opacity;
+      if (opacity <= 0) continue;
+
+      final drift = math.sin((particle.x * 9.0) + eased * math.pi) * 10;
+      final center = Offset(
+        size.width * particle.x + drift,
+        size.height * particle.y - eased * 72,
+      );
+      final paint = Paint()..color = const Color(0xFF37D1B8).withOpacity(opacity * 0.55);
+      canvas.drawCircle(center, particle.radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GrainOpeningParticlePainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
+
+class _OpeningParticle {
+  final double x;
+  final double y;
+  final double radius;
+  final double delay;
+  final double opacity;
+
+  const _OpeningParticle(this.x, this.y, this.radius, this.delay, this.opacity);
+}
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -87,7 +263,7 @@ class _HomePageState extends State<HomePage> {
   static const Color _pink = Color(0xFFFF8B98);
   static const Color _refinedGreen = Color(0xFF5FD6B8);
   static const Color _refinedRed = Color(0xFFE56B73);
-  static const String _fullLogoAsset = "assets/03_grain_full_logo_primary_37D1B8_transparent.png";
+  static const String _fullLogoAsset = _grainFullLogoAsset;
 
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
