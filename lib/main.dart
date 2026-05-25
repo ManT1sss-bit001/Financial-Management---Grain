@@ -839,7 +839,7 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 14),
               Container(
-                height: 320,
+                height: (MediaQuery.of(context).size.height * 0.38).clamp(140.0, 320.0).toDouble(),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(_isDarkMode ? 0.28 : 0.06),
@@ -887,44 +887,40 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: _pageBackground,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [_pageBackgroundAlt, _pageBackground],
-                ),
-              ),
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_pageBackgroundAlt, _pageBackground],
+          ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: KeyedSubtree(
+              key: ValueKey(_currentIndex),
+              child: _buildBodyContent(),
             ),
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 92),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 260),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                child: KeyedSubtree(
-                  key: ValueKey(_currentIndex),
-                  child: _buildBodyContent(),
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: _buildBottomNavigation(),
-            ),
-          ),
-        ],
+        ),
       ),
+      bottomNavigationBar: keyboardVisible
+          ? null
+          : ColoredBox(
+              color: _pageBackground,
+              child: SafeArea(
+                top: false,
+                child: _buildBottomNavigation(),
+              ),
+            ),
     );
   }
 
@@ -948,7 +944,7 @@ class _HomePageState extends State<HomePage> {
     final recent = transactions.take(5).toList();
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       children: [
         _buildTopBar(),
         const SizedBox(height: 26),
@@ -1087,22 +1083,25 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 30),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               _labelText("Budget Goal"),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: "${(progress * 100).clamp(0, 999).toStringAsFixed(0)}%",
-                      style: TextStyle(color: budgetColor, fontWeight: FontWeight.w900),
-                    ),
-                    TextSpan(
-                      text: " of ${_money(_monthlyBudget, decimals: 0)}",
-                      style: TextStyle(color: _textMuted, fontWeight: FontWeight.w700),
-                    ),
-                  ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "${(progress * 100).clamp(0, 999).toStringAsFixed(0)}%",
+                        style: TextStyle(color: budgetColor, fontWeight: FontWeight.w900),
+                      ),
+                      TextSpan(
+                        text: " of ${_money(_monthlyBudget, decimals: 0)}",
+                        style: TextStyle(color: _textMuted, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.right,
                 ),
               ),
             ],
@@ -1225,7 +1224,7 @@ class _HomePageState extends State<HomePage> {
     final selectedTxs = _transactionsForDay(_selectedYear, _selectedMonth, _selectedDay);
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       children: [
         _buildTopBar(eyebrow: "Calendar Spending", compact: true),
         const SizedBox(height: 26),
@@ -1242,7 +1241,11 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     _labelText(_formatMonthYear(DateTime(_selectedYear, _selectedMonth))),
                     const SizedBox(height: 6),
-                    _animatedMoney(selectedMonthTotal, fontSize: 32),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _animatedMoney(selectedMonthTotal, fontSize: 32),
+                    ),
                   ],
                 ),
               ),
@@ -1282,10 +1285,15 @@ class _HomePageState extends State<HomePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                _monthNames[_selectedMonth],
-                style: TextStyle(color: _textPrimary, fontSize: 24, fontWeight: FontWeight.w900),
+              Expanded(
+                child: Text(
+                  _monthNames[_selectedMonth],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: _textPrimary, fontSize: 24, fontWeight: FontWeight.w900),
+                ),
               ),
+              const SizedBox(width: 10),
               PopupMenuButton<int>(
                 color: _navySoft,
                 initialValue: _selectedYear,
@@ -1460,12 +1468,15 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _labelText("Monthly Limit", color: budgetColor),
-              Text(
-                "${(_budgetProgress * 100).clamp(0, 999).toStringAsFixed(0)}% Used",
-                style: TextStyle(color: budgetColor, fontSize: 12, fontWeight: FontWeight.w800),
+              Expanded(child: _labelText("Monthly Limit", color: budgetColor)),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  "${(_budgetProgress * 100).clamp(0, 999).toStringAsFixed(0)}% Used",
+                  textAlign: TextAlign.right,
+                  style: TextStyle(color: budgetColor, fontSize: 12, fontWeight: FontWeight.w800),
+                ),
               ),
             ],
           ),
@@ -1479,7 +1490,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildAddExpenseScreen() {
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       children: [
         Row(
           children: [
@@ -1627,11 +1638,15 @@ class _HomePageState extends State<HomePage> {
           children: [
             Icon(Icons.calendar_today_rounded, color: _accentColor, size: 20),
             const SizedBox(width: 12),
-            Text(
-              _formatFullDate(_expenseDate),
-              style: TextStyle(color: _textPrimary, fontSize: 15, fontWeight: FontWeight.w700),
+            Expanded(
+              child: Text(
+                _formatFullDate(_expenseDate),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: _textPrimary, fontSize: 15, fontWeight: FontWeight.w700),
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 10),
             Icon(Icons.expand_more_rounded, color: _textMuted),
           ],
         ),
@@ -1799,7 +1814,7 @@ class _HomePageState extends State<HomePage> {
 
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       children: [
         _buildTopBar(eyebrow: "Insights", compact: true),
         const SizedBox(height: 24),
@@ -1816,7 +1831,14 @@ class _HomePageState extends State<HomePage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Expanded(child: _animatedMoney(monthlyTotal, fontSize: 42)),
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _animatedMoney(monthlyTotal, fontSize: 42),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   _deltaPill(),
                 ],
               ),
@@ -1887,6 +1909,18 @@ class _HomePageState extends State<HomePage> {
 
         if (wide) {
           return Row(children: children.map((child) => Expanded(child: Padding(padding: const EdgeInsets.only(right: 12), child: child))).toList());
+        }
+
+        if (constraints.maxWidth < 360) {
+          return Column(
+            children: [
+              children[0],
+              const SizedBox(height: 12),
+              children[1],
+              const SizedBox(height: 12),
+              children[2],
+            ],
+          );
         }
 
         return Column(
@@ -2023,7 +2057,16 @@ class _HomePageState extends State<HomePage> {
           Row(
             children: [
               Expanded(child: _labelText("Month-Over-Month")),
-              Text(_monthDeltaText(), style: TextStyle(color: _monthDeltaStatusColor(), fontSize: 12, fontWeight: FontWeight.w900)),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  _monthDeltaText(),
+                  textAlign: TextAlign.right,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: _monthDeltaStatusColor(), fontSize: 12, fontWeight: FontWeight.w900),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 22),
@@ -2040,7 +2083,12 @@ class _HomePageState extends State<HomePage> {
       children: [
         SizedBox(
           width: 74,
-          child: Text(label, style: TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w800)),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: _textMuted, fontSize: 12, fontWeight: FontWeight.w800),
+          ),
         ),
         Expanded(
           child: ClipRRect(
@@ -2061,10 +2109,14 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(width: 12),
         SizedBox(
           width: 76,
-          child: Text(
-            _money(value, decimals: 0),
-            textAlign: TextAlign.right,
-            style: TextStyle(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w900),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              _money(value, decimals: 0),
+              textAlign: TextAlign.right,
+              style: TextStyle(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w900),
+            ),
           ),
         ),
       ],
@@ -2116,6 +2168,8 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 12),
                   Text(
                     insight.action.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: insight.color, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0),
                   ),
                 ],
@@ -2130,7 +2184,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildSettingsScreen() {
     return ListView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       children: [
         _buildTopBar(eyebrow: "Settings", compact: true),
         const SizedBox(height: 28),
@@ -2271,11 +2325,20 @@ class _HomePageState extends State<HomePage> {
             children: [
               Icon(Icons.palette_outlined, color: _accentColor, size: 22),
               const SizedBox(width: 14),
-              Text("Accent Colour", style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+              Expanded(
+                child: Text(
+                  "Accent Colour",
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
-          Row(
+          Wrap(
+            spacing: 14,
+            runSpacing: 12,
             children: colors.map((color) {
               final selected = color == _accentColor;
               return GestureDetector(
@@ -2287,7 +2350,6 @@ class _HomePageState extends State<HomePage> {
                   duration: const Duration(milliseconds: 160),
                   width: 36,
                   height: 36,
-                  margin: const EdgeInsets.only(right: 14),
                   decoration: BoxDecoration(
                     color: color,
                     shape: BoxShape.circle,
@@ -2390,40 +2452,50 @@ class _HomePageState extends State<HomePage> {
                 BoxShadow(color: _accentColor.withOpacity(0.12), blurRadius: 28, offset: const Offset(0, 8)),
               ],
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: items.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
-                final selected = _currentIndex == index;
-                final isAdd = index == 2;
-                return GestureDetector(
-                  onTap: () => _goToTab(index),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: isAdd ? 58 : 52,
-                    height: isAdd ? 58 : 52,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: isAdd && selected ? _accentGradient : null,
-                      color: selected && !isAdd ? _accentColor.withOpacity(0.16) : Colors.transparent,
-                      boxShadow: selected
-                          ? [BoxShadow(color: _accentColor.withOpacity(0.26), blurRadius: 20, offset: const Offset(0, 8))]
-                          : null,
-                    ),
-                    child: Icon(
-                      item.icon,
-                      color: selected
-                          ? isAdd
-                              ? const Color(0xFF00201A)
-                              : _accentColor
-                          : _textMuted.withOpacity(0.78),
-                      size: isAdd ? 30 : 24,
-                      semanticLabel: item.label,
-                    ),
-                  ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final slotWidth = constraints.maxWidth / items.length;
+                return Row(
+                  children: items.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    final selected = _currentIndex == index;
+                    final isAdd = index == 2;
+                    final maximumSize = isAdd ? 58.0 : 52.0;
+                    final itemSize = math.min(maximumSize, math.max(0, slotWidth - 6)).toDouble();
+                    return Expanded(
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () => _goToTab(index),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            width: itemSize,
+                            height: itemSize,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: isAdd && selected ? _accentGradient : null,
+                              color: selected && !isAdd ? _accentColor.withOpacity(0.16) : Colors.transparent,
+                              boxShadow: selected
+                                  ? [BoxShadow(color: _accentColor.withOpacity(0.26), blurRadius: 20, offset: const Offset(0, 8))]
+                                  : null,
+                            ),
+                            child: Icon(
+                              item.icon,
+                              color: selected
+                                  ? isAdd
+                                      ? const Color(0xFF00201A)
+                                      : _accentColor
+                                  : _textMuted.withOpacity(0.78),
+                              size: math.min(isAdd ? 30.0 : 24.0, itemSize * 0.56),
+                              semanticLabel: item.label,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             ),
           ),
         ),
@@ -2506,9 +2578,15 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              "-${_money(t.amount)}",
-              style: TextStyle(color: _pink, fontSize: 17, fontWeight: FontWeight.w900),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  "-${_money(t.amount)}",
+                  style: TextStyle(color: _pink, fontSize: 17, fontWeight: FontWeight.w900),
+                ),
+              ),
             ),
           ],
         ),
@@ -2539,7 +2617,13 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            Text("-${_money(t.amount)}", style: TextStyle(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w900)),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text("-${_money(t.amount)}", style: TextStyle(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w900)),
+              ),
+            ),
           ],
         ),
       ),
@@ -2796,20 +2880,30 @@ class _HomePageState extends State<HomePage> {
     final percent = _monthOverMonthPercent();
     final isIncrease = percent != null && percent > 0;
     final statusColor = _monthDeltaStatusColor();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.13),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: statusColor.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(isIncrease ? Icons.trending_up_rounded : Icons.trending_down_rounded, size: 14, color: statusColor),
-          const SizedBox(width: 4),
-          Text(_monthDeltaText(short: true), style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w900)),
-        ],
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 126),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: statusColor.withOpacity(0.13),
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: statusColor.withOpacity(0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(isIncrease ? Icons.trending_up_rounded : Icons.trending_down_rounded, size: 14, color: statusColor),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                _monthDeltaText(short: true),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2957,16 +3051,20 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  if (reminders.isEmpty)
-                    _buildEmptyReminderState()
-                  else
-                    Flexible(
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: reminders.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) => _buildReminderTile(reminders[index]),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: reminders.isEmpty
+                          ? _buildEmptyReminderState()
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (var index = 0; index < reminders.length; index++) ...[
+                                  if (index > 0) const SizedBox(height: 12),
+                                  _buildReminderTile(reminders[index]),
+                                ],
+                              ],
+                            ),
                       ),
                     ),
                 ],
