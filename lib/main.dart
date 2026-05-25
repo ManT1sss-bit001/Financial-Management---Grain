@@ -2073,8 +2073,15 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildSmartInsightCarousel() {
     final insights = _insightCards();
+    final textScaler = MediaQuery.textScalerOf(context);
+    final bodyHeight = textScaler.scale(16) * 1.35 * 3;
+    final actionHeight = textScaler.scale(11) * 1.35;
+    final carouselHeight = math.max(
+      198.0,
+      20 + 42 + 18 + bodyHeight + 12 + actionHeight + 20,
+    ).toDouble();
     return SizedBox(
-      height: 168,
+      height: carouselHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
